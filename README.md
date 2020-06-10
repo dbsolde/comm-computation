@@ -1,7 +1,7 @@
 # Commission
 Commission computation
 
-## Installationn
+## Installation
 
 ```bash
 # clone the repo
