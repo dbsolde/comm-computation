@@ -18,14 +18,14 @@ class UserCashOut {
         const userId = data.user_id;
         // get transaction type and user type index
         const userConfig = config[`${data.type}_${data.user_type}`];
-        
+        const percents = userConfig.percents;
+
         if(data.user_type === "natural") {
             // Natural user commission computation
             const userWeekTransaction = getUserCurrentWeek(data.date);
             const weeklyLimitAmount = userConfig.week_limit.amount;            
             
-            const userWeeklyCashOutTotal = this.getUserWeeklyTransaction(userId,amount,userWeekTransaction)
-
+            const userWeeklyCashOutTotal = this.getUserWeeklyTransaction(userId,amount,userWeekTransaction);
             // Let's check if we exceeded to the weekly amount limitation
             if(userWeeklyCashOutTotal + amount > weeklyLimitAmount) {
 
@@ -33,13 +33,14 @@ class UserCashOut {
                 if(totalUserWithdrawn > amount) {
                     totalUserWithdrawn = amount;
                 }
-                commission = computeCommission(totalUserWithdrawn,userConfig.percents);
+                commission = computeCommission(totalUserWithdrawn,percents);
             }
         } else {
             // Legal user commission computation            
-            commission = computeCommission(amount,userConfig.percents);
-            if(commission < userConfig.min.amount) {
-                commission = userConfig.min.amount;
+            const userMinAmount = userConfig.min.amount;
+            commission = computeCommission(amount,percents);
+            if(commission < userMinAmount) {
+                commission = userMinAmount;
             }
         }
 

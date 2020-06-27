@@ -12,9 +12,9 @@ class App {
     }
 
     /**
-     * Load all required api
+     * Load all required api's
      */
-    async loadAPIs() {
+    async loadAppData() {
         await Promise.all([CashIn.cashin(), CashOut.userNatural(), CashOut.userLegal()])
         .then( results => {
 
@@ -48,7 +48,7 @@ class App {
         } else {
             commission = UserCashOut.getUserCashOutCommission(item,this.config);
         }
-        this.printResult(commission);
+        this.printResult(roundUp(commission));
         
     }
 
