@@ -11,5 +11,13 @@ export const getUserCurrentWeek = date => moment(date, "YYYY-MM-DD").format("W")
  * @param {Number} amount 
  * @param {Number} percents 
  */
-export const computeCommission = (amount,percents) => (amount * percents)  / 100;
+export const computeCommission = (amount,percents) => {
+    const total = (amount * percents)  / 100
+    return roundUp(total)
+}
 
+/**
+ * Rounding up helper
+ * @param {Number} amount 
+ */
+export const roundUp = amount => amount.toFixed(2);

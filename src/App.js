@@ -1,119 +1,65 @@
 import { CashIn, CashOut } from './api';
+import UserCashIn from './UserCashIn';
+import UserCashOut from './UserCashOut';
 import data from './data/input.json';
-import { getUserCurrentWeek, computeCommission } from './utils/helper';
+import { roundUp } from './utils/helper';
 
-export default class App {
+class App {
 
     constructor() {
         this.inputData = data;
-        this.cashInData = {};
-        this.cashOutLegalData = {};
-        this.cashOutNaturalData = {};
-        this.user = {};
-    }
-
-
-    async calculateCommission() {
-        let results = [];
-
-        this.cashInData = await CashIn.cashin();
-        this.cashOutLegalData = await CashOut.userLegal();
-        this.cashOutNaturalData = await CashOut.userNatural();
-
-        this.inputData.map( item => {
-            let commission;
-
-            if(item.type === "cash_in") {
-                commission = this.cashIn(item,this.cashInData);
-            } else {
-                const config = item.user_type === "natural" ? this.cashOutNaturalData : this.cashOutLegalData;
-                commission = this.cashOut(item,config);
-            }
-
-            results.push(commission)
-        });
-
-        console.log('node app.js input.json')
-
-        console.log(results);
+        this.config = {};
     }
 
     /**
-     * Calculate cashIn user commision
-     * @param {object} data 
-     * @param {object} config 
+     * Load all required api
      */
-    cashIn (data,config) {        
-        let commission = 0;
-        const amount = data.operation.amount;
-        
-        commission = computeCommission(amount,config.percents);
+    async loadAPIs() {
+        await Promise.all([CashIn.cashin(), CashOut.userNatural(), CashOut.userLegal()])
+        .then( results => {
 
-        if(commission > config.max.amount) {
-            commission = config.max.amount;
-        }
-        
-        return commission.toFixed(2);
-    }
-
-    /**
-     * Calculate cashOut user commision
-     * @param {object} data 
-     * @param {object} config 
-     */
-    cashOut (data,config) {
-        
-        let commission = 0;
-        const amount = data.operation.amount;
-        const userId = data.user_id;
-
-        if(data.user_type === "natural") {
-            // Natural user commission computation
-            const userWeekTransaction = getUserCurrentWeek(data.date);
-            const weeklyLimitAmount = config.week_limit.amount;            
-            
-            const userWeeklyCashOutTotal = this.getUserWeeklyTransaction(userId,amount,userWeekTransaction)
-
-            // Let's check if we exceeded to the weekly amount limitation
-            if(userWeeklyCashOutTotal + amount > weeklyLimitAmount) {
-
-                let totalUserWithdrawn = userWeeklyCashOutTotal + amount - weeklyLimitAmount;
-                if(totalUserWithdrawn > amount) {
-                    totalUserWithdrawn = amount;
+            this.inputData.map( item => {                
+                if(item.type === 'cash_in') {
+                    // Let's save transaction type and user type as config index
+                    this.config[`${item.type}_${item.user_type}`] = results[0].data;
+                } else {
+                    if(item.user_type === 'natural') {
+                        this.config[`${item.type}_${item.user_type}`] = results[1].data;
+                    } else if(item.user_type === 'juridical') {
+                        this.config[`${item.type}_${item.user_type}`] = results[2].data;
+                    }
                 }
-                commission = computeCommission(totalUserWithdrawn,config.percents);
-            }
-            
-        } else {
-            // Legal user commission computation            
-            commission = computeCommission(amount,config.percents);
-            if(commission < config.min.amount) {
-                commission = config.min.amount;
-            }
-        }
-
-        return commission.toFixed(2);
+                this.getUserCommission(item);
+            });
+        })
+        .catch(e => {
+            console.log(e,'error');
+        }); 
     }
 
     /**
-     * This will sum up user weekly transaction
-     * @param {Number} userId 
-     * @param {Number} amount 
-     * @param {Number} weeklyTransaction 
+     * Assign a user for commission computation
+     * @param {object} item 
      */
-    getUserWeeklyTransaction(userId,amount,weeklyTransaction) {
-        if (!this.user[userId]) this.user[userId] = [];
-
-        // This will add up user transaction
-        const userWeeklyCashOutTotal = this.user[userId]
-                .reduce((amount, data) =>
-                    (
-                        weeklyTransaction === data.weeklyTransaction 
-                        ? amount + data.amount 
-                        : amount
-                    )
-                ,0);
-        this.user[userId] = [...this.user[userId], { weeklyTransaction, amount }];
-        return userWeeklyCashOutTotal;
+    getUserCommission(item) {
+        let commission;
+        if(item.type === "cash_in") {
+            commission = UserCashIn.getUserCashInCommission(item,this.config);
+        } else {
+            commission = UserCashOut.getUserCashOutCommission(item,this.config);
+        }
+        this.printResult(commission);
+        
     }
+
+    /**
+     * Printing stuff
+     * @param {Number} commission 
+     */
+    printResult(commission) {
+        console.log(commission);
+    }
+
 }
+
+export default new App();
