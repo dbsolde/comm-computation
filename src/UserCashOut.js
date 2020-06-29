@@ -26,10 +26,11 @@ class UserCashOut {
             const weeklyLimitAmount = userConfig.week_limit.amount;            
             
             const userWeeklyCashOutTotal = this.getUserWeeklyTransaction(userId,amount,userWeekTransaction);
+            const userTotalWeeklyCashOut = userWeeklyCashOutTotal + amount;
             // Let's check if we exceeded to the weekly amount limitation
-            if(userWeeklyCashOutTotal + amount > weeklyLimitAmount) {
-
-                let totalUserWithdrawn = userWeeklyCashOutTotal + amount - weeklyLimitAmount;
+            if(userTotalWeeklyCashOut > weeklyLimitAmount) {
+               
+                let totalUserWithdrawn = userTotalWeeklyCashOut - weeklyLimitAmount;
                 if(totalUserWithdrawn > amount) {
                     totalUserWithdrawn = amount;
                 }
